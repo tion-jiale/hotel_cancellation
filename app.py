@@ -49,15 +49,67 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Load data & models ─────────────────────────────────────────────────────
+# ── Encoding helpers (must match training pipeline) ───────────────────────
+COUNTRY_ORDER = sorted([
+    'AGO','AND','ARE','ARG','ARM','ATA','AUS','AUT','AZE','BEL','BEN','BGD',
+    'BGR','BHR','BIH','BLR','BRA','CHE','CHL','CHN','CIV','CMR','CN','COL',
+    'CPV','CRI','CUB','CYP','CZE','DEU','DNK','DOM','DZA','ECU','EGY','ESP',
+    'EST','FIN','FRA','GBR','GEO','GIB','GNB','GRC','GUY','HKG','HRV','HUN',
+    'IDN','IND','IRL','IRN','ISL','ISR','ITA','JAM','JOR','JPN','KAZ','KNA',
+    'KOR','KWT','LBN','LBY','LTU','LUX','LVA','MAC','MAR','MCO','MDV','MEX',
+    'MKD','MLT','MMR','MOZ','MUS','MYS','NGA','NLD','NOR','NPL','NZL','OMN',
+    'PAK','PAN','PER','PHL','PLW','POL','PRI','PRT','QAT','ROU','RUS','SAU',
+    'SEN','SGP','SRB','SVK','SVN','SWE','THA','TJK','TUN','TUR','TWN','TZA',
+    'UGA','UKR','URY','USA','UZB','VEN','VNM','ZAF','ZWE',
+])
+COUNTRY_MAP  = {c: i for i, c in enumerate(COUNTRY_ORDER)}
+BUCKET_MAP   = {'Last_minute': 0, 'Short': 1, 'Medium': 2,
+                'Long': 3, 'Very_long': 4, 'Extreme': 5}
+
+# Columns the scaler was fitted on (70 columns, exact order from X_test.pkl)
+SCALER_COLS = [
+    'hotel','lead_time','stays_in_week_nights','adults','children','babies',
+    'country','is_repeated_guest','previous_cancellations',
+    'previous_bookings_not_canceled','booking_changes','days_in_waiting_list',
+    'adr','required_car_parking_spaces','total_of_special_requests',
+    'arrival_year','arrival_month','arrival_quarter','arrival_day_of_week',
+    'total_nights','total_guests','match_room_type','lead_time_bucket',
+    'has_special_request','is_high_risk','lead_time_bucket_encoded',
+    'meal_BB','meal_FB','meal_HB','meal_SC','meal_Undefined',
+    'market_segment_Aviation','market_segment_Complementary',
+    'market_segment_Corporate','market_segment_Direct','market_segment_Groups',
+    'market_segment_Offline TA/TO','market_segment_Online TA',
+    'distribution_channel_Corporate','distribution_channel_Direct',
+    'distribution_channel_GDS','distribution_channel_TA/TO',
+    'distribution_channel_Undefined',
+    'deposit_type_No Deposit','deposit_type_Non Refund','deposit_type_Refundable',
+    'customer_type_Contract','customer_type_Group','customer_type_Transient',
+    'customer_type_Transient-Party',
+    'reserved_room_type_A','reserved_room_type_B','reserved_room_type_C',
+    'reserved_room_type_D','reserved_room_type_E','reserved_room_type_F',
+    'reserved_room_type_G','reserved_room_type_H','reserved_room_type_L',
+    'assigned_room_type_A','assigned_room_type_B','assigned_room_type_C',
+    'assigned_room_type_D','assigned_room_type_E','assigned_room_type_F',
+    'assigned_room_type_G','assigned_room_type_H','assigned_room_type_I',
+    'assigned_room_type_K','assigned_room_type_L',
+]
+
+def encode_for_scaler(df: pd.DataFrame) -> np.ndarray:
+    """Encode country/lead_time_bucket to numeric and return numpy array."""
+    d = df.copy()
+    d["country"]          = d["country"].map(COUNTRY_MAP).fillna(-1).astype(float)
+    d["lead_time_bucket"] = d["lead_time_bucket"].map(BUCKET_MAP).fillna(-1).astype(float)
+    return d[SCALER_COLS].astype(float).values
+
 @st.cache_resource
 def load_assets():
     data     = pd.read_csv("encode_hotel.csv")
-    X_test   = joblib.load("X_test.pkl")
+    X_test   = joblib.load("x_test.pkl")
     y_test   = joblib.load("y_test.pkl")
     cb_model = joblib.load("catboost_model.pkl")
 
     scaler = joblib.load("scaler.pkl")
-    X_test_scale = scaler.transform(X_test)
+    X_test_scale = scaler.transform(encode_for_scaler(X_test))
     return data, X_test_scale, y_test, cb_model, scaler
 
 data, X_test_scale, y_test, cb_model, scaler = load_assets()
@@ -172,79 +224,8 @@ with tab_predict:
                        "Medium"      if lt<=90 else "Long"  if lt<=180 else "Very_long")
         arr_q       = (month_num - 1) // 3 + 1
 
-        # ── 245-column feature vector (same order as training)
-        ALL_COLS = [
-            'hotel','lead_time','stays_in_week_nights','adults','children','babies',
-            'is_repeated_guest','previous_cancellations','previous_bookings_not_canceled',
-            'booking_changes','days_in_waiting_list','adr','required_car_parking_spaces',
-            'total_of_special_requests','arrival_year','arrival_month','arrival_quarter',
-            'arrival_day_of_week','total_nights','total_guests','match_room_type',
-            'has_special_request','is_high_risk','lead_time_bucket_encoded',
-            'meal_BB','meal_FB','meal_HB','meal_SC','meal_Undefined',
-            'market_segment_Aviation','market_segment_Complementary','market_segment_Corporate',
-            'market_segment_Direct','market_segment_Groups','market_segment_Offline TA/TO',
-            'market_segment_Online TA',
-            'distribution_channel_Corporate','distribution_channel_Direct',
-            'distribution_channel_GDS','distribution_channel_TA/TO','distribution_channel_Undefined',
-            'deposit_type_No Deposit','deposit_type_Non Refund','deposit_type_Refundable',
-            'customer_type_Contract','customer_type_Group','customer_type_Transient',
-            'customer_type_Transient-Party',
-            'reserved_room_type_A','reserved_room_type_B','reserved_room_type_C',
-            'reserved_room_type_D','reserved_room_type_E','reserved_room_type_F',
-            'reserved_room_type_G','reserved_room_type_H','reserved_room_type_L',
-            'assigned_room_type_A','assigned_room_type_B','assigned_room_type_C',
-            'assigned_room_type_D','assigned_room_type_E','assigned_room_type_F',
-            'assigned_room_type_G','assigned_room_type_H','assigned_room_type_I',
-            'assigned_room_type_K','assigned_room_type_L',
-        ]
-
-        COUNTRY_COLS = [
-            'country_ABW','country_AGO','country_AIA','country_ALB','country_AND',
-            'country_ARE','country_ARG','country_ARM','country_ASM','country_ATA',
-            'country_AUS','country_AUT','country_AZE','country_BDI','country_BEL',
-            'country_BEN','country_BFA','country_BGD','country_BGR','country_BHR',
-            'country_BHS','country_BIH','country_BLR','country_BOL','country_BRA',
-            'country_BRB','country_BWA','country_CAF','country_CHE','country_CHL',
-            'country_CHN','country_CIV','country_CMR','country_CN','country_COL',
-            'country_COM','country_CPV','country_CRI','country_CUB','country_CYM',
-            'country_CYP','country_CZE','country_DEU','country_DJI','country_DMA',
-            'country_DNK','country_DOM','country_DZA','country_ECU','country_EGY',
-            'country_ESP','country_EST','country_ETH','country_FIN','country_FJI',
-            'country_FRA','country_FRO','country_GAB','country_GBR','country_GEO',
-            'country_GGY','country_GHA','country_GIB','country_GLP','country_GNB',
-            'country_GRC','country_GTM','country_GUY','country_HKG','country_HND',
-            'country_HRV','country_HUN','country_IDN','country_IMN','country_IND',
-            'country_IRL','country_IRN','country_IRQ','country_ISL','country_ISR',
-            'country_ITA','country_JAM','country_JEY','country_JOR','country_JPN',
-            'country_KAZ','country_KEN','country_KHM','country_KIR','country_KNA',
-            'country_KOR','country_KWT','country_LAO','country_LBN','country_LBY',
-            'country_LCA','country_LIE','country_LKA','country_LTU','country_LUX',
-            'country_LVA','country_MAC','country_MAR','country_MCO','country_MDV',
-            'country_MEX','country_MKD','country_MLI','country_MLT','country_MMR',
-            'country_MNE','country_MOZ','country_MRT','country_MUS','country_MWI',
-            'country_MYS','country_MYT','country_NAM','country_NCL','country_NGA',
-            'country_NIC','country_NLD','country_NOR','country_NPL','country_NZL',
-            'country_OMN','country_PAK','country_PAN','country_PER','country_PHL',
-            'country_PLW','country_POL','country_PRI','country_PRT','country_PRY',
-            'country_PYF','country_QAT','country_ROU','country_RUS','country_RWA',
-            'country_SAU','country_SDN','country_SEN','country_SGP','country_SLE',
-            'country_SLV','country_SMR','country_SRB','country_STP','country_SUR',
-            'country_SVK','country_SVN','country_SWE','country_SYC','country_SYR',
-            'country_TGO','country_THA','country_TJK','country_TMP','country_TUN',
-            'country_TUR','country_TWN','country_TZA','country_UGA','country_UKR',
-            'country_UMI','country_URY','country_USA','country_UZB','country_VEN',
-            'country_VGB','country_VNM','country_ZAF','country_ZMB','country_ZWE',
-        ]
-
-        RES_COLS    = ['reservation_status_Canceled','reservation_status_Check-Out',
-                       'reservation_status_No-Show']
-        BUCKET_COLS = ['lead_time_bucket_Last_minute','lead_time_bucket_Long',
-                       'lead_time_bucket_Medium','lead_time_bucket_Short',
-                       'lead_time_bucket_Very_long']
-
-        ALL_245 = ALL_COLS + COUNTRY_COLS + RES_COLS + BUCKET_COLS
-
-        row = {col: 0 for col in ALL_245}
+        # ── Build 70-column input vector (matches scaler training columns) ──
+        row = {col: 0.0 for col in SCALER_COLS}
 
         def s(k, v):
             if k in row: row[k] = v
@@ -255,6 +236,7 @@ with tab_predict:
         s("adults",                         adults)
         s("children",                       children)
         s("babies",                         babies)
+        s("country",                        float(COUNTRY_MAP.get(country, -1)))
         s("is_repeated_guest",              1 if is_repeat == "Yes" else 0)
         s("previous_cancellations",         prev_cancel)
         s("previous_bookings_not_canceled", 0)
@@ -270,24 +252,21 @@ with tab_predict:
         s("total_nights",                   stays_nights)
         s("total_guests",                   total_g)
         s("match_room_type",                match_rm)
+        s("lead_time_bucket",               float(BUCKET_MAP.get(lt_bucket, -1)))
         s("has_special_request",            has_sp)
         s("is_high_risk",                   hi_risk)
         s("lead_time_bucket_encoded",       lt_enc)
         s(f"meal_{meal}",                   1)
         s(f"market_segment_{market_seg}",   1)
         s(f"distribution_channel_{dist_channel}", 1)
-        s({"No Deposit":"deposit_type_No Deposit",
-           "Non Refund":"deposit_type_Non Refund",
-           "Refundable":"deposit_type_Refundable"}[deposit_type], 1)
+        s({"No Deposit": "deposit_type_No Deposit",
+           "Non Refund": "deposit_type_Non Refund",
+           "Refundable": "deposit_type_Refundable"}[deposit_type], 1)
         s(f"customer_type_{customer_type}", 1)
         s(f"reserved_room_type_{reserved_room}", 1)
         s(f"assigned_room_type_{assigned_room}", 1)
-        if country != "Other":
-            s(f"country_{country}", 1)
-        s("reservation_status_Check-Out",   1)
-        s(f"lead_time_bucket_{lt_bucket}",  1)
 
-        input_arr        = np.array([[row[c] for c in ALL_245]], dtype=np.float64)
+        input_arr        = np.array([[row[c] for c in SCALER_COLS]], dtype=np.float64)
         input_arr_scaled = scaler.transform(input_arr)
         prob             = float(cb_model.predict_proba(input_arr_scaled)[0, 1])
 
