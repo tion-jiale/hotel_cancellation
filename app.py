@@ -104,7 +104,7 @@ def encode_for_scaler(df: pd.DataFrame) -> np.ndarray:
 @st.cache_resource
 def load_assets():
     data     = pd.read_csv("encode_hotel.csv")
-    X_test   = joblib.load("x_test.pkl")
+    X_test   = joblib.load("X_test.pkl")
     y_test   = joblib.load("y_test.pkl")
     cb_model = joblib.load("catboost_model.pkl")
 
