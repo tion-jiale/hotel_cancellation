@@ -41,10 +41,10 @@ st.markdown("""
 .badge-high   { background:#FEE2E2; color:#991B1B; padding:4px 14px; border-radius:20px; font-weight:600; font-size:13px; }
 .badge-medium { background:#FEF3C7; color:#92400E; padding:4px 14px; border-radius:20px; font-weight:600; font-size:13px; }
 .badge-low    { background:#D1FAE5; color:#065F46; padding:4px 14px; border-radius:20px; font-weight:600; font-size:13px; }
-.info  { background:#EFF6FF; border-left:3px solid #1A56DB; padding:10px 14px; border-radius:0 8px 8px 0; font-size:13px; margin:6px 0; }
-.warn  { background:#FFF7ED; border-left:3px solid #D97706; padding:10px 14px; border-radius:0 8px 8px 0; font-size:13px; margin:6px 0; }
-.good  { background:#F0FDF4; border-left:3px solid #059669; padding:10px 14px; border-radius:0 8px 8px 0; font-size:13px; margin:6px 0; }
-.alert { background:#FEF2F2; border-left:3px solid #DC2626; padding:10px 14px; border-radius:0 8px 8px 0; font-size:13px; margin:6px 0; }
+.info  { background:#EFF6FF; border-left:3px solid #1A56DB; padding:10px 14px; border-radius:0 8px 8px 0; font-size:13px; margin:6px 0; color:#1E3A5F !important; }
+.warn  { background:#FFF7ED; border-left:3px solid #D97706; padding:10px 14px; border-radius:0 8px 8px 0; font-size:13px; margin:6px 0; color:#7C3C00 !important; }
+.good  { background:#F0FDF4; border-left:3px solid #059669; padding:10px 14px; border-radius:0 8px 8px 0; font-size:13px; margin:6px 0; color:#14532D !important; }
+.alert { background:#FEF2F2; border-left:3px solid #DC2626; padding:10px 14px; border-radius:0 8px 8px 0; font-size:13px; margin:6px 0; color:#7F1D1D !important; }
 </style>
 """, unsafe_allow_html=True)
 
